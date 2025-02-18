@@ -68,37 +68,41 @@ initialLoad();
 breedSelect.addEventListener("change", fetchFavorite);
 async function fetchFavorite()
 {   
-    const res = await fetch(`https://api.thecatapi.com/v1/images/search?limit=10&breed_ids=${breedSelect.value}&api_key=${API_KEY}`);
-    const breeds = await res.json();
-    
-    const info = document.getElementById("infoDump");
-    const carouselContent = document.getElementById("carouselInner");
-    
-    info.innerHTML ="";       
-    Carousel.clear();       
+    try{
+        const res = await fetch(`https://api.thecatapi.com/v1/images/search?limit=10&breed_ids=${breedSelect.value}&api_key=${API_KEY}`);
+        const breeds = await res.json();
+        
+        const info = document.getElementById("infoDump");
+        const carouselContent = document.getElementById("carouselInner");
+        
+        info.innerHTML ="";       
+        Carousel.clear();       
 
-    if(breeds.length > 0){
-        breeds.forEach((item, index) => {
+        if(breeds.length > 0){
+            breeds.forEach((item, index) => {
 
-            Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.breeds[0].id));
-            // carouselContent.appendChild(createCarousel(item.url, item.breeds[0].name, item.id));
+                Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.breeds[0].id));
+                // carouselContent.appendChild(createCarousel(item.url, item.breeds[0].name, item.id));
 
-            let strInfo = `<h3>${item.breeds[0].name}</h3>`;
-            strInfo += `<table>`;
-            strInfo += `<tr><td><b>Origin</b></td><td>${item.breeds[0].origin}</td></tr>`;
-            strInfo += `<tr><td><b>Desscription</b></td><td>${item.breeds[0].description}</td></tr>`;
-            strInfo += `<tr><td><b>Weight</b></td><td>`;
-            strInfo += `<i><b>Imperial:</b> ${item.breeds[0].weight["imperial"]}</i><br>`;
-            strInfo += `<i><b>Metric:</b> ${item.breeds[0].weight["metric"]}</i>`;
-            strInfo += `</td></tr>`;                
-            strInfo += `<tr><td><b>Life Span</b></td><td>${item.breeds[0].life_span}</td></tr>`;
-            strInfo += `<tr><td><b>Temperament</b></td><td>${item.breeds[0].temperament}</td></tr>`;
-            strInfo += `</table>`;
-            info.innerHTML = strInfo;
-        }
-        ) 
-        Carousel.start();        
-    }        
+                let strInfo = `<h3>${item.breeds[0].name}</h3>`;
+                strInfo += `<table>`;
+                strInfo += `<tr><td><b>Origin</b></td><td>${item.breeds[0].origin}</td></tr>`;
+                strInfo += `<tr><td><b>Desscription</b></td><td>${item.breeds[0].description}</td></tr>`;
+                strInfo += `<tr><td><b>Weight</b></td><td>`;
+                strInfo += `<i><b>Imperial:</b> ${item.breeds[0].weight["imperial"]}</i><br>`;
+                strInfo += `<i><b>Metric:</b> ${item.breeds[0].weight["metric"]}</i>`;
+                strInfo += `</td></tr>`;                
+                strInfo += `<tr><td><b>Life Span</b></td><td>${item.breeds[0].life_span}</td></tr>`;
+                strInfo += `<tr><td><b>Temperament</b></td><td>${item.breeds[0].temperament}</td></tr>`;
+                strInfo += `</table>`;
+                info.innerHTML = strInfo;
+            }
+            ) 
+            Carousel.start();        
+        }   
+    }catch(e){
+        console.error(e);
+    }      
 }
 
 

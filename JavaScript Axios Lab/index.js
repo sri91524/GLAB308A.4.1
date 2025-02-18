@@ -6,7 +6,7 @@ const breedSelect = document.getElementById("breedSelect");
 // The information section div element.
 const infoDump = document.getElementById("infoDump");
 // The progress bar div element.
-const progressBar = document.getElementById("progressBar");
+const progBar = document.getElementById("progressBar");
 // The get favourites button element.
 const getFavouritesBtn = document.getElementById("getFavouritesBtn");
 
@@ -22,11 +22,27 @@ const API_KEY = "live_fi0dI9CEZjkyKWQ2aIjdIOgH7ICvlb7ILaDsmnOsUjE9F8drzgOLrWsnvG
  * This function should execute immediately.
  */
 
+/**
+ * 4. Change all of your fetch() functions to axios!
+ * - axios has already been imported for you within index.js.
+ * - If you've done everything correctly up to this point, this should be simple.
+ * - If it is not simple, take a moment to re-evaluate your original code.
+ * - Hint: Axios has the ability to set default headers. Use this to your advantage
+ *   by setting a default header with your API key so that you do not have to
+ *   send it manually with all of your requests! You can also set a default base URL!
+ */
+/**
+ * 5. Add axios interceptors to log the time between request and response to the console.
+ * - Hint: you already have access to code that does this!
+ * - Add a console.log statement to indicate when requests begin.
+ * - As an added challenge, try to do this on your own without referencing the lesson material.
+ */
+
 axios.interceptors.request.use(request =>{    
     request.metadata = request.metadata || {};
     request.metadata.startTime = new Date().getTime();
     console.log("Request begin at: ",new Date());
-    // progBar.style.width = "0%";
+    progBar.style.width = "0%";
 
     return request;
 });
@@ -86,66 +102,56 @@ initialLoad();
 breedSelect.addEventListener("change", fetchFavorite);
 async function fetchFavorite()
 {   
-    axios.defaults.headers.common['x-api-key'] = API_KEY;
-    axios.defaults.baseURL = "https://api.thecatapi.com/v1";
+    try{
+        axios.defaults.headers.common['x-api-key'] = API_KEY;
+        axios.defaults.baseURL = "https://api.thecatapi.com/v1";
 
-    // Fetch cat images with breed filter
-    const res = await axios.get("/images/search", {
-        params: {
-            limit: 10,          // Number of images to return
-            breed_ids: breedSelect.value  // Filter by breed
-        }
-    });
+        // Fetch cat images with breed filter
+        const res = await axios.get("/images/search", {
+            params: {
+                limit: 10,          // Number of images to return
+                breed_ids: breedSelect.value  // Filter by breed
+            }
+        });
 
-    console.log("Response Duration in ms(Breed selection change) : ", res.DurationInMS);   
-    
-    const breed = res.data;   
-    const info = document.getElementById("infoDump");
-    const carouselContent = document.getElementById("carouselInner");
-    
-    info.innerHTML ="";       
-    Carousel.clear();          
+        console.log("Response Duration in ms(Breed selection change) : ", res.DurationInMS);   
+        
+        const breed = res.data;   
+        const info = document.getElementById("infoDump");
+        const carouselContent = document.getElementById("carouselInner");
+        
+        info.innerHTML ="";       
+        Carousel.clear();          
 
-    if(breed.length > 0){
-        breed.forEach(item => {
-            Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.id));           
+        if(breed.length > 0){
+            breed.forEach(item => {
+                Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.id));            
 
-            let strInfo = `<h3>${item.breeds[0].name}</h3>`;
-            strInfo += `<table>`;
-            strInfo += `<tr><td><b>Origin</b></td><td>${item.breeds[0].origin}</td></tr>`;
-            strInfo += `<tr><td><b>Desscription</b></td><td>${item.breeds[0].description}</td></tr>`;
-            strInfo += `<tr><td><b>Weight</b></td><td>`;
-            strInfo += `<i><b>Imperial:</b> ${item.breeds[0].weight["imperial"]}</i><br>`;
-            strInfo += `<i><b>Metric:</b> ${item.breeds[0].weight["metric"]}</i>`;
-            strInfo += `</td></tr>`;                
-            strInfo += `<tr><td><b>Life Span</b></td><td>${item.breeds[0].life_span}</td></tr>`;
-            strInfo += `<tr><td><b>Temperament</b></td><td>${item.breeds[0].temperament}</td></tr>`;
-            strInfo += `</table>`;
-            info.innerHTML = strInfo;
-        }); 
-        Carousel.start();        
-    }        
+                let strInfo = `<h3>${item.breeds[0].name}</h3>`;
+                strInfo += `<table>`;
+                strInfo += `<tr><td><b>Origin</b></td><td>${item.breeds[0].origin}</td></tr>`;
+                strInfo += `<tr><td><b>Desscription</b></td><td>${item.breeds[0].description}</td></tr>`;
+                strInfo += `<tr><td><b>Weight</b></td><td>`;
+                strInfo += `<i><b>Imperial:</b> ${item.breeds[0].weight["imperial"]}</i><br>`;
+                strInfo += `<i><b>Metric:</b> ${item.breeds[0].weight["metric"]}</i>`;
+                strInfo += `</td></tr>`;                
+                strInfo += `<tr><td><b>Life Span</b></td><td>${item.breeds[0].life_span}</td></tr>`;
+                strInfo += `<tr><td><b>Temperament</b></td><td>${item.breeds[0].temperament}</td></tr>`;
+                strInfo += `</table>`;
+                info.innerHTML = strInfo;
+            }); 
+            Carousel.start();        
+    } 
+    }catch(e){
+        console.error(e);
+    }       
 }
 
 
 /**
  * 3. Fork your own sandbox, creating a new one named "JavaScript Axios Lab."
  */
-/**
- * 4. Change all of your fetch() functions to axios!
- * - axios has already been imported for you within index.js.
- * - If you've done everything correctly up to this point, this should be simple.
- * - If it is not simple, take a moment to re-evaluate your original code.
- * - Hint: Axios has the ability to set default headers. Use this to your advantage
- *   by setting a default header with your API key so that you do not have to
- *   send it manually with all of your requests! You can also set a default base URL!
- */
-/**
- * 5. Add axios interceptors to log the time between request and response to the console.
- * - Hint: you already have access to code that does this!
- * - Add a console.log statement to indicate when requests begin.
- * - As an added challenge, try to do this on your own without referencing the lesson material.
- */
+
 
 /**
  * 6. Next, we'll create a progress bar to indicate the request is in progress.
