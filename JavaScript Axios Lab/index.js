@@ -22,27 +22,45 @@ const API_KEY = "live_fi0dI9CEZjkyKWQ2aIjdIOgH7ICvlb7ILaDsmnOsUjE9F8drzgOLrWsnvG
  * This function should execute immediately.
  */
 
+axios.interceptors.request.use(request =>{    
+    request.metadata = request.metadata || {};
+    request.metadata.startTime = new Date().getTime();
+    console.log("Request begin at: ",new Date());
+    // progBar.style.width = "0%";
+
+    return request;
+});
+
+axios.interceptors.response.use(
+    (response) => {
+        response.config.metadata.endTime = new Date().getTime();
+        response.DurationInMS = response.config.metadata.endTime - response.config.metadata.startTime;
+        return response;
+    },
+    (error) => {
+        error.config.metadata.endTime = new Date().getTime();
+        error.DurationInMS = error.config.metadata.endTime - error.config.metadata.startTime;
+        throw error;
+    });
+
 //?Fetching from API use of fetch
 async function initialLoad(){
-    try{
-
-        //send request to cat api
-        // const res = await fetch("https://api.thecatapi.com/v1/breeds", {
-        //     headers:{
-        //         'x-api-key': API_KEY
-        //     }
-        // });
-        const res = await fetch("https://api.thecatapi.com/v1/breeds");
-        const breeds = await res.json();
+    try{                
+        axios.defaults.headers.common['x-api-key'] = API_KEY;
+        axios.defaults.baseURL = "https://api.thecatapi.com/v1";
         breedSelect.innerHTML ="";
-
-        breeds.forEach(breed => {            
+        const response = await axios.get("/breeds");
+        
+        console.log("Response Duration in ms(Initial Load) : ", response.DurationInMS);
+        const breeds = response.data;
+        breeds.forEach(breed =>
+        {
             const option = document.createElement('option');
             option.value = breed.id;
-            option.text = breed.name; 
-            breedSelect.appendChild(option); 
-        });      
-        fetchFavorite();
+            option.text =  breed.name;
+            breedSelect.appendChild(option);
+        });                           
+        fetchFavorite();    
     }
         catch(e){
             console.error(e);
@@ -68,20 +86,29 @@ initialLoad();
 breedSelect.addEventListener("change", fetchFavorite);
 async function fetchFavorite()
 {   
-    const res = await fetch(`https://api.thecatapi.com/v1/images/search?limit=10&breed_ids=${breedSelect.value}&api_key=${API_KEY}`);
-    const breeds = await res.json();
+    axios.defaults.headers.common['x-api-key'] = API_KEY;
+    axios.defaults.baseURL = "https://api.thecatapi.com/v1";
+
+    // Fetch cat images with breed filter
+    const res = await axios.get("/images/search", {
+        params: {
+            limit: 10,          // Number of images to return
+            breed_ids: breedSelect.value  // Filter by breed
+        }
+    });
+
+    console.log("Response Duration in ms(Breed selection change) : ", res.DurationInMS);   
     
+    const breed = res.data;   
     const info = document.getElementById("infoDump");
     const carouselContent = document.getElementById("carouselInner");
     
     info.innerHTML ="";       
-    Carousel.clear();       
+    Carousel.clear();          
 
-    if(breeds.length > 0){
-        breeds.forEach((item, index) => {
-
-            Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.breeds[0].id));
-            // carouselContent.appendChild(createCarousel(item.url, item.breeds[0].name, item.id));
+    if(breed.length > 0){
+        breed.forEach(item => {
+            Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.id));           
 
             let strInfo = `<h3>${item.breeds[0].name}</h3>`;
             strInfo += `<table>`;
@@ -95,8 +122,7 @@ async function fetchFavorite()
             strInfo += `<tr><td><b>Temperament</b></td><td>${item.breeds[0].temperament}</td></tr>`;
             strInfo += `</table>`;
             info.innerHTML = strInfo;
-        }
-        ) 
+        }); 
         Carousel.start();        
     }        
 }
