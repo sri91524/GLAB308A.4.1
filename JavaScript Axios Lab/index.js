@@ -38,32 +38,47 @@ const API_KEY = "live_fi0dI9CEZjkyKWQ2aIjdIOgH7ICvlb7ILaDsmnOsUjE9F8drzgOLrWsnvG
  * - As an added challenge, try to do this on your own without referencing the lesson material.
  */
 
-axios.interceptors.request.use(request =>{    
+/**
+ * 7. As a final element of progress indication, add the following to your axios interceptors:
+ * - In your request interceptor, set the body element's cursor style to "progress."
+ * - In your response interceptor, remove the progress cursor style from the body element.
+ */
+
+axios.interceptors.request.use(
+    (request) =>{    
     request.metadata = request.metadata || {};
     request.metadata.startTime = new Date().getTime();
     console.log("Request begin at: ",new Date());
     progBar.style.width = "0%";
-
+    document.body.style.cursor ="progress";
     return request;
+    },
+    (error) => {
+        document.body.style.cursor ="default";
+        throw error;    
 });
 
 axios.interceptors.response.use(
     (response) => {
         response.config.metadata.endTime = new Date().getTime();
         response.DurationInMS = response.config.metadata.endTime - response.config.metadata.startTime;
+        document.body.style.cursor ="default";
         return response;
     },
     (error) => {
         error.config.metadata.endTime = new Date().getTime();
         error.DurationInMS = error.config.metadata.endTime - error.config.metadata.startTime;
+        document.body.style.cursor ="default";
         throw error;
     });
 
+axios.defaults.headers.common['x-api-key'] = API_KEY;
+axios.defaults.baseURL = "https://api.thecatapi.com/v1";
+const info = document.getElementById("infoDump");
+
 //?Fetching from API use of fetch
 async function initialLoad(){
-    try{                
-        axios.defaults.headers.common['x-api-key'] = API_KEY;
-        axios.defaults.baseURL = "https://api.thecatapi.com/v1";
+    try{     
         breedSelect.innerHTML ="";
         const response = await axios.get("/breeds",{
             onDownloadProgress: updateProgress
@@ -78,7 +93,7 @@ async function initialLoad(){
             option.text =  breed.name;
             breedSelect.appendChild(option);
         });                           
-        fetchFavorite();    
+        RefreshCarouselBreedInfo();    
     }
         catch(e){
             console.error(e);
@@ -128,13 +143,10 @@ function updateProgress(progressEvent) {
     }
 }
 
-breedSelect.addEventListener("change", fetchFavorite);
-async function fetchFavorite()
+breedSelect.addEventListener("change", RefreshCarouselBreedInfo);
+async function RefreshCarouselBreedInfo()
 {   
-    try{
-        axios.defaults.headers.common['x-api-key'] = API_KEY;
-        axios.defaults.baseURL = "https://api.thecatapi.com/v1";
-
+    try{      
         // Fetch cat images with breed filter
         const res = await axios.get("/images/search", {
             params: {
@@ -146,17 +158,13 @@ async function fetchFavorite()
 
         console.log("Response Duration in ms(Breed selection change) : ", res.DurationInMS);   
         
-        const breeds = res.data;   
-        const info = document.getElementById("infoDump");
-        const carouselContent = document.getElementById("carouselInner");
-        
+        const breeds = res.data;
         info.innerHTML ="";       
         Carousel.clear();          
 
         if(breeds.length > 0){
             breeds.forEach(item => {
-                Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.id));            
-
+                Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.id));   
                 let strInfo = `<h3>${item.breeds[0].name}</h3>`;
                 strInfo += `<table>`;
                 strInfo += `<tr><td><b>Origin</b></td><td>${item.breeds[0].origin}</td></tr>`;
@@ -177,18 +185,8 @@ async function fetchFavorite()
     }       
 }
 
-
 /**
  * 3. Fork your own sandbox, creating a new one named "JavaScript Axios Lab."
- */
-
-
-
-
-/**
- * 7. As a final element of progress indication, add the following to your axios interceptors:
- * - In your request interceptor, set the body element's cursor style to "progress."
- * - In your response interceptor, remove the progress cursor style from the body element.
  */
 /**
  * 8. To practice posting data, we'll create a system to "favourite" certain images.
@@ -201,8 +199,65 @@ async function fetchFavorite()
  *   you delete that favourite using the API, giving this function "toggle" functionality.
  * - You can call this function by clicking on the heart at the top right of any image.
  */
-export async function favourite(imgId) {
-  // your code here
+export async function favourite(imgId, currElement) {
+
+    let bFavorite = currElement.classList.contains("active");
+  
+    try{ 
+        if(bFavorite){
+            console.log("Active..");
+            const resCurrFav = await axios.get('/favourites', {
+                params: {                
+                    image_id: imgId  // Filter by image
+                }            
+            });
+            if(resCurrFav.data.length > 0){
+                let favId = resCurrFav.data[0].id;              
+                await axios.delete(`/favourites/${favId}`,{
+                    headers: { 
+                    'Content-Type': 'application/json; charset=UTF-8'
+                    } 
+                })
+                  .then(response => {
+                    console.log(response.data);
+                  })
+                  .catch(error => {
+                    if (error.response) {
+                      console.log(error.response.data);
+                      console.log(error.response.status);                      
+                    } else if (error.request) {
+                      console.log(error.request);
+                    } else {
+                      console.log('Error', error.message);
+                    }
+                    console.log(error.config);
+                  });
+                
+                currElement.style.color = "lightpink";                
+            }            
+        }
+        else{
+            console.log("Not Active....")
+
+            let rawBody = JSON.stringify({ 
+                "image_id": imgId        
+            });
+
+            const response = await axios.post('/favourites', 
+                rawBody,{ 
+                headers: { 
+                        'Content-Type': 'application/json; charset=UTF-8' 
+                    }
+            });
+            console.log(response);
+            currElement.style.color = "red";
+        } 
+        currElement.classList.toggle("active");
+
+    }catch(error){
+        console.error("Errors:", error);
+    }    
+    console.log(currElement);    
 }
 
 /**
@@ -214,7 +269,34 @@ export async function favourite(imgId) {
  *    If that isn't in its own function, maybe it should be so you don't have to
  *    repeat yourself in this section.
  */
+getFavouritesBtn.addEventListener("click", getFavourites);
+async function getFavourites(){
 
+    try{    
+            const response = await axios.get("/favourites");
+            const breeds = response.data;           
+
+            info.innerHTML ="";       
+            Carousel.clear();
+
+            if(breeds.length > 0){
+                breeds.forEach(item => {                   
+                    let imgId = item.image.id; 
+                    let imgUrl = item.image.url;                    
+                    let  imgAlt = `Cat image - ${imgId}`;
+
+                    Carousel.appendCarousel(Carousel.createCarouselItem(imgUrl, imgAlt, imgId, true));                     
+                }); 
+                Carousel.start();
+            }  
+            else
+            {
+                console.log("There is no favorite list!!!")
+            }  
+        }catch(e){
+        console.error(e);
+    }    
+}
 /**
  * 10. Test your site, thoroughly!
  * - What happens when you try to load the Malayan breed?
