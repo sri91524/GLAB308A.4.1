@@ -66,6 +66,7 @@ body {
     margin-right: 0;
     flex: 0 0 33.333333%;
     display: block;
+    object-fit: cover;
   }
   .carousel-inner {
     display: flex;

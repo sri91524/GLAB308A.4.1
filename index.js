@@ -35,7 +35,7 @@ async function initialLoad(){
         const res = await fetch("https://api.thecatapi.com/v1/breeds");
         const breeds = await res.json();
         breedSelect.innerHTML ="";
-
+        //fetching breed details and populating dropdown
         breeds.forEach(breed => {            
             const option = document.createElement('option');
             option.value = breed.id;
@@ -69,40 +69,48 @@ breedSelect.addEventListener("change", fetchFavorite);
 async function fetchFavorite()
 {   
     try{
-        const res = await fetch(`https://api.thecatapi.com/v1/images/search?limit=10&breed_ids=${breedSelect.value}&api_key=${API_KEY}`);
-        const breeds = await res.json();
-        
-        const info = document.getElementById("infoDump");
-        const carouselContent = document.getElementById("carouselInner");
-        
-        info.innerHTML ="";       
-        Carousel.clear();       
+    const res = await fetch(`https://api.thecatapi.com/v1/images/search?limit=10&breed_ids=${breedSelect.value}&api_key=${API_KEY}`);
+    const breeds = await res.json();
+    
+    const info = document.getElementById("infoDump");
+    const carouselContent = document.getElementById("carouselInner");
+    
+    info.innerHTML ="";       
+    Carousel.clear();       
+    let strInfo = "";
+    if(breeds.length > 0){
+        breeds.forEach((item, index) => {
+            //populating carousel based on breed selected in drop down
+            Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.breeds[0].id));
+            
+            //fetching breed info and populating infodump
+            //breed information is not available for some breeds and it will be same for all the images
+            //so binding breed info only once 
 
-        if(breeds.length > 0){
-            breeds.forEach((item, index) => {
-
-                Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.breeds[0].id));
-                // carouselContent.appendChild(createCarousel(item.url, item.breeds[0].name, item.id));
-
-                let strInfo = `<h3>${item.breeds[0].name}</h3>`;
-                strInfo += `<table>`;
-                strInfo += `<tr><td><b>Origin</b></td><td>${item.breeds[0].origin}</td></tr>`;
+            if(strInfo === "" && item.breeds.length > 0 ){                  
+                strInfo = `<h3>${item.breeds[0].name}</h3>`;
+                strInfo += `<table style ="width:70%; background-color: rgb(225, 182, 196); cellpadding:8px">`;
+                strInfo += `<tr style="background-color:rgb(227, 134, 163);"><td><b>Origin</b></td><td>${item.breeds[0].origin}</td></tr>`;
                 strInfo += `<tr><td><b>Desscription</b></td><td>${item.breeds[0].description}</td></tr>`;
-                strInfo += `<tr><td><b>Weight</b></td><td>`;
-                strInfo += `<i><b>Imperial:</b> ${item.breeds[0].weight["imperial"]}</i><br>`;
-                strInfo += `<i><b>Metric:</b> ${item.breeds[0].weight["metric"]}</i>`;
+                strInfo += `<tr style="background-color:rgb(227, 134, 163);"><td><b>Weight</b></td><td>`;
+                strInfo += `<i><b>Imperial (pounds):</b> ${item.breeds[0].weight["imperial"]}</i><br>`;
+                strInfo += `<i><b>Metric (kg):</b> ${item.breeds[0].weight["metric"]}</i>`;
                 strInfo += `</td></tr>`;                
                 strInfo += `<tr><td><b>Life Span</b></td><td>${item.breeds[0].life_span}</td></tr>`;
-                strInfo += `<tr><td><b>Temperament</b></td><td>${item.breeds[0].temperament}</td></tr>`;
+                strInfo += `<tr style="background-color:rgb(227, 134, 163);"><td><b>Temperament</b></td><td>${item.breeds[0].temperament}</td></tr>`;
                 strInfo += `</table>`;
-                info.innerHTML = strInfo;
-            }
-            ) 
-            Carousel.start();        
-        }   
-    }catch(e){
-        console.error(e);
-    }      
+                info.innerHTML = strInfo;                    
+            }           
+        }); 
+        Carousel.start();        
+    }   
+    else
+    {
+        infoDump.innerHTML = `<p align="center" style="color:red;font-size:18px;">There is no information available to this breed at this point.</p>`;
+    }
+}catch(e){
+    console.error(e);
+}      
 }
 
 

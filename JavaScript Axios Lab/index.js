@@ -80,6 +80,8 @@ const info = document.getElementById("infoDump");
 async function initialLoad(){
     try{     
         breedSelect.innerHTML ="";
+        //fetching breed details to populate dropdown and 
+        //progress bar function for while loading dropdown
         const response = await axios.get("/breeds",{
             onDownloadProgress: updateProgress
         });
@@ -133,9 +135,8 @@ initialLoad();
  */
 
 function updateProgress(progressEvent) {
-    
-    if(progressEvent.lengthComputable){
-        console.log(progressEvent);
+    //progress bar function -- progressEvent (loaded / total)*100 -- progresspercentage% 
+    if(progressEvent.lengthComputable){        
         const loaded = progressEvent.loaded;
         const total = progressEvent.total;
         const progPercentage = Math.round((loaded/total) * 100);
@@ -147,7 +148,8 @@ breedSelect.addEventListener("change", RefreshCarouselBreedInfo);
 async function RefreshCarouselBreedInfo()
 {   
     try{      
-        // Fetch cat images with breed filter
+        // Fetch cat images with breed ids as filter
+        //progressbar function on download
         const res = await axios.get("/images/search", {
             params: {
                 limit: 10,          // Number of images to return
@@ -156,30 +158,53 @@ async function RefreshCarouselBreedInfo()
             onDownloadProgress: updateProgress
         });
 
+        //to get favorites data to mark images if it is selected as favorite
+        const resFavorite = await axios.get("/favourites")
+        const dataFavorite = resFavorite.data;
+        let bFav = false;
+
         console.log("Response Duration in ms(Breed selection change) : ", res.DurationInMS);   
         
-        const breeds = res.data;
+        const breeds = res.data;        
         info.innerHTML ="";       
         Carousel.clear();          
-
+        let strInfo = "";
+        //To load carousel with images fetched based on dropdown change
         if(breeds.length > 0){
             breeds.forEach(item => {
-                Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.id));   
-                let strInfo = `<h3>${item.breeds[0].name}</h3>`;
-                strInfo += `<table>`;
-                strInfo += `<tr><td><b>Origin</b></td><td>${item.breeds[0].origin}</td></tr>`;
-                strInfo += `<tr><td><b>Desscription</b></td><td>${item.breeds[0].description}</td></tr>`;
-                strInfo += `<tr><td><b>Weight</b></td><td>`;
-                strInfo += `<i><b>Imperial:</b> ${item.breeds[0].weight["imperial"]}</i><br>`;
-                strInfo += `<i><b>Metric:</b> ${item.breeds[0].weight["metric"]}</i>`;
-                strInfo += `</td></tr>`;                
-                strInfo += `<tr><td><b>Life Span</b></td><td>${item.breeds[0].life_span}</td></tr>`;
-                strInfo += `<tr><td><b>Temperament</b></td><td>${item.breeds[0].temperament}</td></tr>`;
-                strInfo += `</table>`;
-                info.innerHTML = strInfo;
+                //if images fetched based on breed matches with the favorite image id ,
+                //set bFav to true and send to createcarouselitem functionality in carousel.js
+                //where images will be marked as red
+                let favItem = dataFavorite.find(favourite => favourite.image_id === item.id) !== undefined;
+                bFav = favItem ? true : false;             
+
+                Carousel.appendCarousel(Carousel.createCarouselItem(item.url, item.breeds[0].name, item.id, bFav));
+                
+                //populate infodump with breed info
+
+                if(strInfo === "" && item.breeds.length > 0 ){                  
+                    strInfo = `<h3>${item.breeds[0].name}</h3>`;
+                    strInfo += `<table style ="width:70%; background-color: rgb(225, 182, 196); cellpadding:8px">`;
+                    strInfo += `<tr style="background-color:rgb(227, 134, 163);"><td><b>Origin</b></td><td>${item.breeds[0].origin}</td></tr>`;
+                    strInfo += `<tr><td><b>Desscription</b></td><td>${item.breeds[0].description}</td></tr>`;
+                    strInfo += `<tr style="background-color:rgb(227, 134, 163);"><td><b>Weight</b></td><td>`;
+                    strInfo += `<i><b>Imperial (pounds):</b> ${item.breeds[0].weight["imperial"]}</i><br>`;
+                    strInfo += `<i><b>Metric (kg):</b> ${item.breeds[0].weight["metric"]}</i>`;
+                    strInfo += `</td></tr>`;                
+                    strInfo += `<tr><td><b>Life Span</b></td><td>${item.breeds[0].life_span}</td></tr>`;
+                    strInfo += `<tr style="background-color:rgb(227, 134, 163);"><td><b>Temperament</b></td><td>${item.breeds[0].temperament}</td></tr>`;
+                    strInfo += `</table>`;
+                    info.innerHTML = strInfo;                    
+                }
+                
             }); 
+            //enable sliding functionality
             Carousel.start();        
-    } 
+        } 
+        else
+        {
+            infoDump.innerHTML = `<p align="center" style="color:red;font-size:18px;">There is no information available to this breed at this point.</p>`;
+        }
     }catch(e){
         console.error(e);
     }       
@@ -201,16 +226,20 @@ async function RefreshCarouselBreedInfo()
  */
 export async function favourite(imgId, currElement) {
 
+    // to toggle classes for favourite and unfavourite
+
     let bFavorite = currElement.classList.contains("active");
   
     try{ 
-        if(bFavorite){
-            console.log("Active..");
+        if(bFavorite){   
+            //to fetch favourites filter by image         
             const resCurrFav = await axios.get('/favourites', {
                 params: {                
                     image_id: imgId  // Filter by image
                 }            
             });
+            // if favourite image is toggled to inactive,
+            //then change the color to light pink and delete it from favourite
             if(resCurrFav.data.length > 0){
                 let favId = resCurrFav.data[0].id;              
                 await axios.delete(`/favourites/${favId}`,{
@@ -236,28 +265,25 @@ export async function favourite(imgId, currElement) {
                 currElement.style.color = "lightpink";                
             }            
         }
-        else{
-            console.log("Not Active....")
-
-            let rawBody = JSON.stringify({ 
-                "image_id": imgId        
-            });
-
-            const response = await axios.post('/favourites', 
-                rawBody,{ 
-                headers: { 
-                        'Content-Type': 'application/json; charset=UTF-8' 
-                    }
-            });
-            console.log(response);
-            currElement.style.color = "red";
-        } 
-        currElement.classList.toggle("active");
+        else{            
+                let rawBody = JSON.stringify({ 
+                    "image_id": imgId        
+                });
+                //if inactive image is marked as favourite,
+                //change color to red and add it to favourites
+                const response = await axios.post('/favourites', 
+                    rawBody,{ 
+                    headers: { 
+                            'Content-Type': 'application/json; charset=UTF-8' 
+                        }
+                });            
+                currElement.style.color = "red"; 
+            } 
+                currElement.classList.toggle("active");
 
     }catch(error){
         console.error("Errors:", error);
-    }    
-    console.log(currElement);    
+    }  
 }
 
 /**
@@ -275,15 +301,14 @@ async function getFavourites(){
     try{    
             const response = await axios.get("/favourites");
             const breeds = response.data;           
-
+            //creating carousel for favourite images on click of getfavourite button
             info.innerHTML ="";       
-            Carousel.clear();
-
+            Carousel.clear();            
             if(breeds.length > 0){
                 breeds.forEach(item => {                   
                     let imgId = item.image.id; 
                     let imgUrl = item.image.url;                    
-                    let  imgAlt = `Cat image - ${imgId}`;
+                    let imgAlt = `Cat image - ${imgId}`;
 
                     Carousel.appendCarousel(Carousel.createCarouselItem(imgUrl, imgAlt, imgId, true));                     
                 }); 
@@ -291,7 +316,8 @@ async function getFavourites(){
             }  
             else
             {
-                console.log("There is no favorite list!!!")
+                infoDump.innerHTML = `<p align="center" style="color:red;font-size:18px;">There is no favorite list!!!</p>`;
+                console.log("There is no favorite list!!!");
             }  
         }catch(e){
         console.error(e);
